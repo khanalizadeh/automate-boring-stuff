@@ -69,6 +69,7 @@ def get_notes_from_chapter(chapter):
     game = chapter.game()
     board = game.board()
     orientation = chess.WHITE if game.headers['Orientation'] == 'white' else chess.BLACK
+    chapter_title = game.headers['Event']
     node = game.game()
     movelist = []
     while node is not None:
@@ -99,6 +100,8 @@ def get_notes_from_chapter(chapter):
                 'comment_after': node.next().comment if node.next() else '',
                 'diagram_before_fn': fn_before,
                 'diagram_after_fn': fn_after,
+                'chapter_title': chapter_title,
+                'study_id': study_id
             }
             notes.append(note)
         node = node.next()
@@ -164,7 +167,9 @@ chess_model = genanki.Model(
         {'name': 'MoveList'},
         {'name': 'Comment'},
         {'name': 'SolutionDiagram'},
-        {'name': 'Solution'}
+        {'name': 'Solution'},
+        {'name': 'Chapter Title'},
+        {'name': 'Study ID'}
     ],
     templates=[
         {
@@ -186,7 +191,9 @@ for note in notes:
         note.get('movelist'),
         note.get('comment_after'),
         note.get('diagram_after'),
-        note.get('next_move')
+        note.get('next_move'),
+        note.get('chapter_title'),
+        note.get('study_id')
     ])
     deck.add_note(anki_note)
 
