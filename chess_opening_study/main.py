@@ -59,10 +59,9 @@ def get_san_from_movelist(movelist):
     board = chess.Board()
     return board.variation_san(movelist)
 
-def generate_filename(movelist_san):
-    if len(movelist_san) == 0:
-        return "diagram - starting position.png"
-    return f"diagram - after {movelist_san}.png"
+def generate_filename(fen):
+    modified_fen = fen.replace('/', '\\')
+    return f"diagram - after {modified_fen}.png"
 
 def get_notes_from_chapter(chapter):
     # returns a list of dictionaries
@@ -77,7 +76,6 @@ def get_notes_from_chapter(chapter):
             movelist.append(node.move)
             board.push(node.move)
         movelist_san = get_san_from_movelist(movelist)
-        fen = board.fen()
         last_move = node.move
         next_move = node.next().move if node.next() else None
         movelist_san_next = get_san_from_movelist(movelist + [next_move]) if next_move else None
@@ -86,17 +84,21 @@ def get_notes_from_chapter(chapter):
             board_next.push(next_move)
         else:
             board_next = None
+        fen = board.fen()
+        fen_next = board_next.fen() if board_next else ''
+        fn_before = generate_filename(fen)
+        fn_after = generate_filename(fen_next) if fen_next else ''
         if orientation == board.turn:
             note = {
                 'movelist': movelist_san,
                 'fen':fen,
-                'diagram_before': f"<img src=\"{generate_diagram(board=board, last_move = last_move, filename=generate_filename(movelist_san))}\">",
+                'diagram_before': f"<img src=\"{generate_diagram(board=board, last_move = last_move, filename=fn_before)}\">",
                 'next_move': board.san(node.next().move) if node.next() else '',
-                'diagram_after': f"<img src=\"{generate_diagram(board=board_next, last_move=next_move, filename=generate_filename(movelist_san_next))}\">" if board_next else '',
+                'diagram_after': f"<img src=\"{generate_diagram(board=board_next, last_move=next_move, filename=fn_after)}\">" if board_next else '',
                 'comment_before': node.comment,
                 'comment_after': node.next().comment if node.next() else '',
-                'diagram_before_fn': generate_filename(movelist_san),
-                'diagram_after_fn':generate_filename(movelist_san_next),
+                'diagram_before_fn': fn_before,
+                'diagram_after_fn': fn_after,
             }
             notes.append(note)
         node = node.next()
