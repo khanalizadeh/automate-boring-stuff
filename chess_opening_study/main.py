@@ -10,11 +10,13 @@ import json
 import genanki
 
 CHESS_OPENING_MODEL_ID = 1657392315 # This should not change, so the notes will all have the same type
+DEFAULT_CSS = '.card { font-family: arial; font-size: 20px; text-align: center; color: black; background-color: white;}'
+
 
 def get_auth_token():
     try:
         with open('auth.txt', 'r') as f:
-            auth_token = f.read()
+            auth_token = f.read().strip()
             return auth_token
     except FileNotFoundError:
         return ''
@@ -46,7 +48,7 @@ def get_chapters_from_pgn(pgn):
 
     return chapters
 
-def generate_digram(board, last_move, filename):
+def generate_diagram(board, last_move, filename):
     diagram_svg = chess.svg.board(board=board, lastmove=last_move)
     png_filename = filename
     svg2png(bytestring=diagram_svg, write_to=png_filename)
@@ -75,6 +77,7 @@ def get_notes_from_chapter(chapter):
             movelist.append(node.move)
             board.push(node.move)
         movelist_san = get_san_from_movelist(movelist)
+        fen = board.fen()
         last_move = node.move
         next_move = node.next().move if node.next() else None
         movelist_san_next = get_san_from_movelist(movelist + [next_move]) if next_move else None
@@ -86,10 +89,10 @@ def get_notes_from_chapter(chapter):
         if orientation == board.turn:
             note = {
                 'movelist': movelist_san,
-                'fen':board.fen(),
-                'diagram_before': f"<img src=\"{generate_digram(board=board, last_move = last_move, filename=generate_filename(movelist_san))}\">",
+                'fen':fen,
+                'diagram_before': f"<img src=\"{generate_diagram(board=board, last_move = last_move, filename=generate_filename(movelist_san))}\">",
                 'next_move': board.san(node.next().move) if node.next() else '',
-                'diagram_after': f"<img src=\"{generate_digram(board=board_next, last_move=next_move, filename=generate_filename(movelist_san_next))}\">" if board_next else '',
+                'diagram_after': f"<img src=\"{generate_diagram(board=board_next, last_move=next_move, filename=generate_filename(movelist_san_next))}\">" if board_next else '',
                 'comment_before': node.comment,
                 'comment_after': node.next().comment if node.next() else '',
                 'diagram_before_fn': generate_filename(movelist_san),
@@ -167,7 +170,8 @@ chess_model = genanki.Model(
             'qfmt':'{{Diagram}}<br>{{MoveList}}',
             'afmt':'{{SolutionDiagram}}<br>{{Solution}}<br>{{Comment}}'
         }
-    ]
+    ],
+    css = DEFAULT_CSS
 )
 
 
@@ -184,9 +188,16 @@ for note in notes:
     ])
     deck.add_note(anki_note)
 
-my_package = genanki.Package(deck)
-my_package.media_files = media_files
-my_package.write_to_file(f'{study_id}.apkg')
+package = genanki.Package(deck)
+package.media_files = media_files
+
+home_directory = os.path.expanduser('~')
+folder_path = os.path.join(home_directory, 'Anki Packages')
+
+try:
+    package.write_to_file(os.path.join(folder_path, f'{study_id}.apkg'))
+except FileNotFoundError:
+    os.makedirs(folder_path)
 
 for file in media_files:
     # clean media files
