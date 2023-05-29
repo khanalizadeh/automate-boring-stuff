@@ -48,8 +48,8 @@ def get_chapters_from_pgn(pgn):
 
     return chapters
 
-def generate_diagram(board, last_move, filename):
-    diagram_svg = chess.svg.board(board=board, lastmove=last_move)
+def generate_diagram(board, last_move, filename, orientation):
+    diagram_svg = chess.svg.board(board=board, lastmove=last_move, flipped=not orientation)
     png_filename = filename
     svg2png(bytestring=diagram_svg, write_to=png_filename)
     return png_filename
@@ -61,7 +61,7 @@ def get_san_from_movelist(movelist):
 
 def generate_filename(fen):
     modified_fen = fen.replace('/', '\\')
-    return f"diagram - after {modified_fen}.png"
+    return f"diagram - {modified_fen}.png"
 
 def get_notes_from_chapter(chapter):
     # returns a list of dictionaries
@@ -93,9 +93,9 @@ def get_notes_from_chapter(chapter):
             note = {
                 'movelist': movelist_san,
                 'fen':fen,
-                'diagram_before': f"<img src=\"{generate_diagram(board=board, last_move = last_move, filename=fn_before)}\">",
+                'diagram_before': f"<img src=\"{generate_diagram(board=board, last_move = last_move, filename=fn_before, orientation=orientation)}\">",
                 'next_move': board.san(node.next().move) if node.next() else '',
-                'diagram_after': f"<img src=\"{generate_diagram(board=board_next, last_move=next_move, filename=fn_after)}\">" if board_next else '',
+                'diagram_after': f"<img src=\"{generate_diagram(board=board_next, last_move=next_move, filename=fn_after, orientation=orientation)}\">" if board_next else '',
                 'comment_before': node.comment,
                 'comment_after': node.next().comment if node.next() else '',
                 'diagram_before_fn': fn_before,
@@ -110,7 +110,7 @@ def get_notes_from_chapter(chapter):
 def get_notes_from_all_chapters(chapters):
     # get notes from unique positions
     notes = []
-    media_files = []
+    media_files = set()
     seen_fen_values = set()
     for chapter in chapters:
         for note in get_notes_from_chapter(chapter):
@@ -118,9 +118,9 @@ def get_notes_from_all_chapters(chapters):
             if fen_value not in seen_fen_values:
                 seen_fen_values.add(fen_value)
                 notes.append(note)
-                media_files.append(note.get('diagram_before_fn'))
-                media_files.append(note.get('diagram_after_fn'))
-    return notes, media_files
+                media_files.add(note.get('diagram_before_fn'))
+                media_files.add(note.get('diagram_after_fn'))
+    return notes, list(media_files)
 
 def get_deck_id(study_id):
     # get deck IDs from previous studies, or make a new one
