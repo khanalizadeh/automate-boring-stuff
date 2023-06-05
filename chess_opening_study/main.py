@@ -119,7 +119,8 @@ def get_notes_from_all_chapters(chapters):
                 seen_fen_values.add(fen_value)
                 notes.append(note)
                 media_files.add(note.get('diagram_before_fn'))
-                media_files.add(note.get('diagram_after_fn'))
+                if note.get('diagram_after_fn'):
+                    media_files.add(note.get('diagram_after_fn'))
     return notes, list(media_files)
 
 def get_deck_id(study_id):
@@ -207,6 +208,7 @@ try:
     package.write_to_file(os.path.join(folder_path, f'{study_id}.apkg'))
 except FileNotFoundError:
     os.makedirs(folder_path)
+    package.write_to_file(os.path.join(folder_path, f'{study_id}.apkg'))
 
 for file in media_files:
     # clean media files
