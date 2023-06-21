@@ -123,37 +123,43 @@ def get_notes_from_all_chapters(chapters):
                     media_files.add(note.get('diagram_after_fn'))
     return notes, list(media_files)
 
-def get_deck_id(study_id):
-    # get deck IDs from previous studies, or make a new one
-    studies = []
+def get_deck_id(deck_name):
+    # get deck IDs from previous decks, or make a new one
+    decks = []
     try:
         with open('existing_studies.json', 'r') as f:
-            studies = json.loads(f.read())
+            decks = json.loads(f.read())
         
-        for study in studies:
-            if study.get('study_id') == study_id:
-                return study.get('deck_id')
+        for deck in decks:
+            if deck.get('deck_name') == deck_name:
+                return deck.get('deck_id')
             
     except FileNotFoundError:
         pass
     
     deck_id = random.randrange(1 << 30, 1 << 31)
 
-    studies.append({'study_id': study_id, 'deck_id': deck_id})
+    decks.append({'deck_name': deck_name, 'deck_id': deck_id})
 
-    with open('existing_studies.json', 'w') as f:
-        json.dump(studies, f)
+    with open('existing_decks.json', 'w') as f:
+        json.dump(decks, f)
 
     return deck_id
 
 
 
-
-
 parser = argparse.ArgumentParser()
-parser.add_argument("study_id", help="ID of the study", type=str)
+parser.add_argument("-s", "--study_id", help="ID of the study", type=str)
+parser.add_argument("-p", "--pgn_file", help="PGN file", type=str)
+parser.add_argument("-d", "--deck_name", help="Name of the deck", type=str)
+parser.add_argument("-o", "--orientation", help="Board orientation", type=str)
+
 args = parser.parse_args()
+
 study_id = args.study_id
+pgn_file = args.pgn_file
+deck_name = args.deck_name
+deck_orientation = args.orientation
 
 pgn = export_study_pgn(study_id=study_id, auth_token=get_auth_token())
 chapters = get_chapters_from_pgn(pgn=pgn)
@@ -169,8 +175,6 @@ chess_model = genanki.Model(
         {'name': 'Comment'},
         {'name': 'SolutionDiagram'},
         {'name': 'Solution'},
-        {'name': 'Chapter Title'},
-        {'name': 'Study ID'}
     ],
     templates=[
         {
@@ -183,7 +187,7 @@ chess_model = genanki.Model(
 )
 
 
-deck = genanki.Deck(get_deck_id(study_id), study_id)
+deck = genanki.Deck(get_deck_id(deck_name), deck_name)
 
 for note in notes:
     anki_note = genanki.Note(model=chess_model, fields=[
@@ -193,8 +197,6 @@ for note in notes:
         note.get('comment_after'),
         note.get('diagram_after'),
         note.get('next_move'),
-        note.get('chapter_title'),
-        note.get('study_id')
     ])
     deck.add_note(anki_note)
 
@@ -205,12 +207,11 @@ home_directory = os.path.expanduser('~')
 folder_path = os.path.join(home_directory, 'Anki Packages')
 
 try:
-    package.write_to_file(os.path.join(folder_path, f'{study_id}.apkg'))
+    package.write_to_file(os.path.join(folder_path, f'{deck_name}.apkg'))
 except FileNotFoundError:
     os.makedirs(folder_path)
-    package.write_to_file(os.path.join(folder_path, f'{study_id}.apkg'))
+    package.write_to_file(os.path.join(folder_path, f'{deck_name}.apkg'))
 
 for file in media_files:
     # clean media files
     os.remove(file)
-
